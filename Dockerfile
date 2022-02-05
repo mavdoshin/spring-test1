@@ -1,13 +1,15 @@
 # syntax=docker/dockerfile:1
 
-FROM openjdk:16-alpine3.13
+FROM maven:3.5.2-jdk-8-alpine AS MAVEN_TOOL_CHAIN
+COPY pom.xml /tmp/
+COPY Dockerfile /tmp/
+COPY src /tmp/src/
+WORKDIR /tmp/
+RUN mvn package
 
-WORKDIR /app
+FROM adoptopenjdk/openjdk11:alpine-jre
 
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
-RUN ./mvnw dependency:go-offline
+WORKDIR /app/test
+COPY --from=MAVEN_TOOL_CHAIN /tmp/target/HelloWorldSpring-1.0-SNAPSHOT.jar ./app.jar
 
-COPY src ./src
-
-CMD ["./mvnw", "spring-boot:run"]
+ENTRYPOINT ["java","-jar","app.jar"]
